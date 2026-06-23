@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0b1a">
+<meta name="description" content="A 30-question diagnostic that tells you whether you're an NPC, a Side Character, a Main Character, or the Final Boss.">
+<title>Are You an NPC? — Personality Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0d0b1a;
+    --panel:#161329;
+    --panel-edge: rgba(255,255,255,0.08);
+    --signal:#00e5ff;     /* awareness */
+    --influence:#7c8cff;  /* influence */
+    --gold:#ffcf5c;       /* plot armor */
+    --glitch:#ff2e9a;     /* chaos */
+    --ink:#f4f3f9;
+    --muted:#938fb0;
+    --radius:28px;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; padding:0; }
+  body{
+    font-family:'Space Grotesk', system-ui, -apple-system, sans-serif;
+    background:var(--void);
+    color:var(--ink);
+    min-height:100svh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---------- ambient field ---------- */
+  .ambient{ position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+  .blob{ position:absolute; width:48vmax; height:48vmax; border-radius:50%; filter:blur(90px); mix-blend-mode:screen; }
+  .blob-a{ background:var(--signal); opacity:.28; top:-18%; left:-18%; animation:driftA 22s ease-in-out infinite; }
+  .blob-b{ background:var(--glitch); opacity:.22; bottom:-22%; right:-12%; animation:driftB 27s ease-in-out infinite; }
+  .blob-c{ background:var(--gold); opacity:.16; top:32%; right:18%; animation:driftC 31s ease-in-out infinite; }
+  @keyframes driftA{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(8%,6%) scale(1.12);} }
+  @keyframes driftB{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-9%,-7%) scale(1.16);} }
+  @keyframes driftC{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-6%,9%) scale(.88);} }
+
+  .scan{ position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.5;
+    background:repeating-linear-gradient(rgba(255,255,255,.025) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;
+  }
+
+  /* ---------- stage / card ---------- */
+  .stage{ position:relative; z-index:1; width:100%; max-width:460px; }
+
+  .card{
+    position:relative;
+    background:linear-gradient(160deg, var(--panel), #0f0d1f 80%);
+    border:1px solid var(--panel-edge);
+    border-radius:var(--radius);
+    padding:clamp(28px,6vw,44px) clamp(22px,5.5vw,36px);
+    box-shadow:0 30px 80px -25px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.02);
+    overflow:hidden;
+    will-change:transform, filter, border-radius, opacity;
+  }
+
+  @keyframes morphOut{
+    0%{ transform:translateX(0) scale(1); border-radius:var(--radius); filter:blur(0); opacity:1; }
+    100%{ transform:translateX(-4%) scale(.92); border-radius:46% 54% 60% 40%/50% 45% 55% 50%; filter:blur(16px); opacity:0; }
+  }
+  @keyframes morphIn{
+    0%{ transform:translateX(4%) scale(.92); border-radius:54% 46% 40% 60%/50% 55% 45% 50%; filter:blur(16px); opacity:0; }
+    100%{ transform:translateX(0) scale(1); border-radius:var(--radius); filter:blur(0); opacity:1; }
+  }
+  .card.morph-out{ animation:morphOut .42s cubic-bezier(.65,0,.35,1) forwards; }
+  .card.morph-in{ animation:morphIn .5s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+  @media (prefers-reduced-motion: reduce){
+    .blob{ animation:none; }
+    .card.morph-out, .card.morph-in{ animation:none; }
+    .word{ animation:none !important; opacity:1 !important; transform:none !important; }
+    h1.glitch::before, h1.glitch::after{ animation:none; }
+    .progress-fill::after{ animation:none; }
+  }
+
+  /* ---------- type ---------- */
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+
+  h1.glitch{
+    font-family:'Pixelify Sans', monospace;
+    font-weight:700;
+    font-size:clamp(26px,7vw,40px);
+    line-height:1.18;
+    position:relative;
+    color:var(--ink);
+    margin:0 0 14px;
+  }
+  h1.glitch::before, h1.glitch::after{ content:attr(data-text); position:absolute; left:0; top:0; width:100%; }
+  h1.glitch::before{ color:var(--signal); clip-path:inset(0 0 58% 0); transform:translate(-2px,-1px); opacity:.85; animation:glitchA 5s infinite linear; }
+  h1.glitch::after{ color:var(--glitch); clip-path:inset(58% 0 0 0); transform:translate(2px,1px); opacity:.85; animation:glitchB 5s infinite linear; }
+  @keyframes glitchA{ 0%,90%,100%{ transform:translate(-2px,-1px);} 92%{ transform:translate(2px,1px);} 94%{ transform:translate(-1px,2px);} 96%{ transform:translate(1px,-2px);} }
+  @keyframes glitchB{ 0%,90%,100%{ transform:translate(2px,1px);} 92%{ transform:translate(-2px,-1px);} 94%{ transform:translate(1px,-2px);} 96%{ transform:translate(-1px,2px);} }
+
+  .sub{ color:var(--muted); font-size:15px; margin:0 0 28px; }
+
+  .btn-primary{
+    display:block; width:100%;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:600; letter-spacing:.06em; font-size:15px;
+    padding:16px; border:none; border-radius:14px;
+    background:linear-gradient(100deg,var(--signal),var(--influence));
+    color:#0a0a14; cursor:pointer;
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 14px 30px -10px rgba(0,229,255,.45); }
+  .btn-primary:active{ transform:translateY(0) scale(.98); }
+  .btn-primary:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+
+  /* ---------- progress (continuous liquid fill) ---------- */
+  .progress-track{
+    height:8px; border-radius:4px; background:rgba(255,255,255,.08);
+    overflow:hidden; margin-bottom:18px; position:relative;
+  }
+  .progress-fill{
+    height:100%; border-radius:4px;
+    background:linear-gradient(90deg,var(--signal),var(--influence));
+    transition:width .55s cubic-bezier(.22,1,.36,1);
+    position:relative; overflow:hidden;
+  }
+  .progress-fill::after{
+    content:''; position:absolute; top:0; right:0; bottom:0; width:36px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.7));
+    filter:blur(2px);
+    animation:sheen 1.7s ease-in-out infinite;
+  }
+  @keyframes sheen{ 0%,100%{ opacity:.25; transform:translateX(0); } 50%{ opacity:.95; transform:translateX(5px); } }
+
+  .meta{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; color:var(--muted); text-transform:uppercase; margin-bottom:16px; }
+  .cursor{ display:inline-block; color:var(--signal); animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .question{ font-size:clamp(18px,4.2vw,21px); font-weight:600; line-height:1.45; margin-bottom:26px; min-height:80px; }
+  .word{ display:inline-block; opacity:0; transform:translateY(8px); animation:wordIn .45s ease forwards; }
+  @keyframes wordIn{ to{ opacity:1; transform:none; } }
+
+  .answers{ display:flex; flex-direction:column; gap:10px; }
+  .answer-btn{
+    position:relative; text-align:left;
+    font-family:'Space Grotesk', sans-serif; font-size:15px; color:var(--ink);
+    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.09);
+    border-radius:12px; padding:14px 16px 14px 34px; cursor:pointer; width:100%;
+    transition:transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+  .answer-btn::before{ content:'\203A'; position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); font-weight:700; transition:color .2s ease; }
+  .answer-btn:hover{ background:rgba(255,255,255,.065); transform:translateX(4px); }
+  .answer-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+  .answer-btn:disabled{ cursor:default; }
+  .answer-btn.selected{ background:rgba(255,255,255,.08); }
+
+  .answer-btn[data-type="npc"]:hover, .answer-btn[data-type="npc"].selected{ border-color:var(--muted); box-shadow:0 0 22px -8px var(--muted); }
+  .answer-btn[data-type="npc"]:hover::before, .answer-btn[data-type="npc"].selected::before{ color:var(--muted); }
+  .answer-btn[data-type="observer"]:hover, .answer-btn[data-type="observer"].selected{ border-color:var(--signal); box-shadow:0 0 22px -8px var(--signal); }
+  .answer-btn[data-type="observer"]:hover::before, .answer-btn[data-type="observer"].selected::before{ color:var(--signal); }
+  .answer-btn[data-type="protagonist"]:hover, .answer-btn[data-type="protagonist"].selected{ border-color:var(--gold); box-shadow:0 0 22px -8px var(--gold); }
+  .answer-btn[data-type="protagonist"]:hover::before, .answer-btn[data-type="protagonist"].selected::before{ color:var(--gold); }
+  .answer-btn[data-type="boss"]:hover, .answer-btn[data-type="boss"].selected{ border-color:var(--glitch); box-shadow:0 0 22px -8px var(--glitch); }
+  .answer-btn[data-type="boss"]:hover::before, .answer-btn[data-type="boss"].selected::before{ color:var(--glitch); }
+
+  /* ---------- result ---------- */
+  .badge{
+    display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px;
+    letter-spacing:.18em; text-transform:uppercase; padding:5px 12px; border-radius:999px;
+    border:1px solid currentColor; margin-bottom:18px;
+  }
+  .badge.common{ color:var(--muted); }
+  .badge.uncommon{ color:var(--signal); }
+  .badge.rare{ color:var(--gold); }
+  .badge.legendary{ color:var(--glitch); animation:legendaryPulse 1.6s ease-in-out infinite; }
+  @keyframes legendaryPulse{ 0%,100%{ box-shadow:0 0 0 var(--glitch); } 50%{ box-shadow:0 0 16px var(--glitch); } }
+
+  .result-title{ font-family:'Pixelify Sans', monospace; font-weight:700; font-size:clamp(24px,6vw,32px); margin:0 0 8px; }
+  .tagline{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--muted); font-style:italic; margin-bottom:18px; }
+  .desc{ font-size:15px; line-height:1.65; color:#d8d6e6; margin-bottom:26px; }
+
+  .stats{ display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
+  .stat-row{ display:grid; grid-template-columns:92px 1fr 30px; align-items:center; gap:10px; }
+  .stat-label{ font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.06em; color:var(--muted); text-transform:uppercase; }
+  .stat-track{ height:6px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; }
+  .stat-fill{ height:100%; width:0%; border-radius:3px; transition:width 1s cubic-bezier(.22,1,.36,1); }
+  .stat-value{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); text-align:right; }
+
+  @media (max-width:380px){
+    .stat-row{ grid-template-columns:78px 1fr 28px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="ambient" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <main class="stage">
+    <div class="card" id="card"></div>
+  </main>
+
+<script>
+(function(){
+  "use strict";
+
+  var questions = [
+    {
+      text: "Chaos breaks out in the group chat. You...",
+      answers: [
+        { text: "Mute it and go back to sleep", type: "npc" },
+        { text: "Screenshot everything, just in case", type: "observer" },
+        { text: "Jump in and untangle the misunderstanding", type: "protagonist" },
+        { text: "Add one (1) thing that makes it worse", type: "boss" }
+      ]
+    },
+    {
+      text: "Ordering at a restaurant, you...",
+      answers: [
+        { text: "Get the same thing you always get", type: "npc" },
+        { text: "Ask the waiter what they'd actually order", type: "observer" },
+        { text: "Pick the dish that sounds like an adventure", type: "protagonist" },
+        { text: "Send something back, just to see them sweat", type: "boss" }
+      ]
+    },
+    {
+      text: "If your life had a soundtrack, it would be...",
+      answers: [
+        { text: "Elevator music \u2014 or honestly, silence", type: "npc" },
+        { text: "Moody indie lo-fi nobody else notices", type: "observer" },
+        { text: "Swelling orchestral strings", type: "protagonist" },
+        { text: "A villain's leitmotif, low brass, oh-it's-this-guy", type: "boss" }
+      ]
+    },
+    {
+      text: "Someone leaves a glaring typo in an important email. You...",
+      answers: [
+        { text: "Don't notice. Never will.", type: "npc" },
+        { text: "Notice instantly. Say nothing. File it away.", type: "observer" },
+        { text: "Quietly fix it before anyone else sees", type: "protagonist" },
+        { text: "Reply-all with the correction", type: "boss" }
+      ]
+    },
+    {
+      text: "Your phone's home screen is...",
+      answers: [
+        { text: "Whatever it shipped with", type: "npc" },
+        { text: "47 folders, perfectly labeled, never opened", type: "observer" },
+        { text: "One wallpaper, five favorite apps, that's it", type: "protagonist" },
+        { text: "A single app. You only need leverage.", type: "boss" }
+      ]
+    },
+    {
+      text: "Plot twist: the elevator stops between floors. You...",
+      answers: [
+        { text: "Wait. Someone will fix it.", type: "npc" },
+        { text: "Start narrating the situation like a podcast, in your head", type: "observer" },
+        { text: "Calm everyone down and find the emergency button", type: "protagonist" },
+        { text: "Quietly enjoy having a captive audience", type: "boss" }
+      ]
+    },
+    {
+      text: "A friend asks, \u201cbe honest, how do I look?\u201d You...",
+      answers: [
+        { text: "Say \u201cgood\u201d without looking up", type: "npc" },
+        { text: "Give a genuinely detailed, accurate answer", type: "observer" },
+        { text: "Hype them up, then slip in one real tip", type: "protagonist" },
+        { text: "Tell the truth bluntly. Let it sting a little.", type: "boss" }
+      ]
+    },
+    {
+      text: "It's 3am and you can't sleep. You're...",
+      answers: [
+        { text: "Already asleep. This was never a you problem.", type: "npc" },
+        { text: "Reading something niche for no reason at all", type: "observer" },
+        { text: "Replaying today, planning tomorrow like a campaign", type: "protagonist" },
+        { text: "Wide awake, plotting something nobody asked about", type: "boss" }
+      ]
+    },
+    {
+      text: "A wandering NPC stops you and asks, \u2018Have you seen any goblins around here?\u2019 You reply...",
+      answers: [
+        { text: "\u201cYes.\u201d (and keep walking)", type: "npc" },
+        { text: "\u201cThree. Two by the river, one pretending to be a rock.\u201d", type: "observer" },
+        { text: "\u201cNo, but I'll go check for you.\u201d", type: "protagonist" },
+        { text: "\u201cGoblins? I am the goblins now.\u201d", type: "boss" }
+      ]
+    },
+    {
+      text: "Someone asks you the same question for the third time today. You...",
+      answers: [
+        { text: "Give the exact same answer, word for word", type: "npc" },
+        { text: "Notice they're not really listening and adjust your answer", type: "observer" },
+        { text: "Patiently explain it a new way until it clicks", type: "protagonist" },
+        { text: "Make them regret asking a fourth time", type: "boss" }
+      ]
+    },
+    {
+      text: "You're handed a fetch quest at work \u2014 \u2018just grab this real quick.\u2019 You...",
+      answers: [
+        { text: "Do it immediately, no questions, return to standing", type: "npc" },
+        { text: "Do it, but mentally log how often this happens", type: "observer" },
+        { text: "Do it, then fix the process so it never happens again", type: "protagonist" },
+        { text: "Negotiate a better quest reward first", type: "boss" }
+      ]
+    },
+    {
+      text: "Your daily routine, mapped out, would look like...",
+      answers: [
+        { text: "The exact same 12 steps, every single day, no deviation", type: "npc" },
+        { text: "Mostly the same, with one curious detour nobody asked about", type: "observer" },
+        { text: "Different every day, always chasing the next thing", type: "protagonist" },
+        { text: "Whatever keeps everyone else guessing", type: "boss" }
+      ]
+    },
+    {
+      text: "A stranger asks you for directions. You...",
+      answers: [
+        { text: "Point in one direction and repeat \u201cit's that way\u201d", type: "npc" },
+        { text: "Give exact, oddly detailed directions, landmarks included", type: "observer" },
+        { text: "Just walk them there yourself", type: "protagonist" },
+        { text: "Send them the long way, on purpose", type: "boss" }
+      ]
+    },
+    {
+      text: "You walk into a room and immediately forget why. You...",
+      answers: [
+        { text: "Stand there. Reboot. Wait for a trigger.", type: "npc" },
+        { text: "Retrace your last five thoughts, methodically", type: "observer" },
+        { text: "Shrug, go find something better to do instead", type: "protagonist" },
+        { text: "Decide you meant to be there all along", type: "boss" }
+      ]
+    },
+    {
+      text: "Someone tries to make small talk but you have no new dialogue. You...",
+      answers: [
+        { text: "Repeat your one line, verbatim, forever", type: "npc" },
+        { text: "Give a knowing look and say nothing new", type: "observer" },
+        { text: "Make something up on the spot", type: "protagonist" },
+        { text: "End the conversation on your terms", type: "boss" }
+      ]
+    },
+    {
+      text: "Your group project teammate goes silent for a week. You...",
+      answers: [
+        { text: "Wait. They'll show up eventually. Or not.", type: "npc" },
+        { text: "Quietly start tracking who's doing what", type: "observer" },
+        { text: "Check in, pick up the slack, keep things moving", type: "protagonist" },
+        { text: "Reassign their part to yourself and take the credit", type: "boss" }
+      ]
+    },
+    {
+      text: "It starts raining and you didn't bring an umbrella. You...",
+      answers: [
+        { text: "Stand under the nearest awning indefinitely", type: "npc" },
+        { text: "Already knew this would happen, dressed accordingly", type: "observer" },
+        { text: "Make a run for it, laughing the whole way", type: "protagonist" },
+        { text: "Walk through it like the weather wouldn't dare", type: "boss" }
+      ]
+    },
+    {
+      text: "You find a wallet on the ground. You...",
+      answers: [
+        { text: "Walk past it. Not your loop.", type: "npc" },
+        { text: "Note the location in case the owner comes back", type: "observer" },
+        { text: "Track down the owner yourself", type: "protagonist" },
+        { text: "Take the cash, leave a note saying \u201cyou're welcome\u201d", type: "boss" }
+      ]
+    },
+    {
+      text: "An NPC offers you a side quest with a genuinely terrible reward. You...",
+      answers: [
+        { text: "Accept anyway, no questions asked", type: "npc" },
+        { text: "Read all the fine print before deciding", type: "observer" },
+        { text: "Do it anyway \u2014 the reward was never the point", type: "protagonist" },
+        { text: "Counter-offer, or just take what you want", type: "boss" }
+      ]
+    },
+    {
+      text: "The wifi goes down mid-meeting. You...",
+      answers: [
+        { text: "Freeze. Literally and figuratively.", type: "npc" },
+        { text: "Already had a backup hotspot ready", type: "observer" },
+        { text: "Keep things moving, no one even notices the gap", type: "protagonist" },
+        { text: "Secretly relieved, mute the mic, vanish", type: "boss" }
+      ]
+    },
+    {
+      text: "Your horoscope today says something vague. You...",
+      answers: [
+        { text: "Don't read horoscopes. Don't read much of anything.", type: "npc" },
+        { text: "Read it, analyze it for hidden meaning anyway", type: "observer" },
+        { text: "Decide to make it true through sheer effort", type: "protagonist" },
+        { text: "Write your own, better, scarier horoscope", type: "boss" }
+      ]
+    },
+    {
+      text: "You're handed a controller for a game you've never played. You...",
+      answers: [
+        { text: "Mash buttons until something happens", type: "npc" },
+        { text: "Read the full tutorial before touching a single button", type: "observer" },
+        { text: "Jump in, learn by doing, get good fast", type: "protagonist" },
+        { text: "Skip the tutorial, beat it on the hardest difficulty anyway", type: "boss" }
+      ]
+    },
+    {
+      text: "A door in front of you won't open, even though it clearly looks like a door. You...",
+      answers: [
+        { text: "Walk into it repeatedly, expecting different results", type: "npc" },
+        { text: "Examine it for a hidden switch nearby", type: "observer" },
+        { text: "Find another way around entirely", type: "protagonist" },
+        { text: "Break it down. It was never load-bearing anyway.", type: "boss" }
+      ]
+    },
+    {
+      text: "Someone cuts you off in traffic. You...",
+      answers: [
+        { text: "Don't even register that it happened", type: "npc" },
+        { text: "Remember their license plate forever, for no reason", type: "observer" },
+        { text: "Let it go, focus on the road ahead", type: "protagonist" },
+        { text: "Make sure they know you're upset, somehow", type: "boss" }
+      ]
+    },
+    {
+      text: "It's your turn to pick the restaurant for the group. You...",
+      answers: [
+        { text: "Say \u201cI'm fine with whatever everyone else wants\u201d", type: "npc" },
+        { text: "Already messaged three people for their preferences", type: "observer" },
+        { text: "Pick somewhere everyone ends up loving", type: "protagonist" },
+        { text: "Pick somewhere expensive and announce it's final", type: "boss" }
+      ]
+    },
+    {
+      text: "You get a notification at 11:58pm. You...",
+      answers: [
+        { text: "Don't see it until tomorrow", type: "npc" },
+        { text: "Read it immediately, reply never", type: "observer" },
+        { text: "Reply right away, can't help it", type: "protagonist" },
+        { text: "Leave it on read, on purpose", type: "boss" }
+      ]
+    },
+    {
+      text: "You've been standing in the exact same spot since the server started. You...",
+      answers: [
+        { text: "Wouldn't have it any other way", type: "npc" },
+        { text: "Have seen everyone who's walked past, twice", type: "observer" },
+        { text: "Were just about to go somewhere, promise", type: "protagonist" },
+        { text: "Are exactly where you want to be, watching everything", type: "boss" }
+      ]
+    },
+    {
+      text: "Someone asks, \u201cwhat's your villain origin story?\u201d You...",
+      answers: [
+        { text: "Don't have one. Wouldn't know where to start.", type: "npc" },
+        { text: "Have one, but you're not telling anyone", type: "observer" },
+        { text: "Turned a bad day into a better person", type: "protagonist" },
+        { text: "Are already mid-arc, thanks for asking", type: "boss" }
+      ]
+    },
+    {
+      text: "Your group chat goes quiet for hours, then 40 messages drop at once. You...",
+      answers: [
+        { text: "Scroll past without reading any of it", type: "npc" },
+        { text: "Read every message in order, build a full timeline", type: "observer" },
+        { text: "Catch up fast, jump right back into it", type: "protagonist" },
+        { text: "Reply to the oldest message just to cause confusion", type: "boss" }
+      ]
+    },
+    {
+      text: "Final question: if your day was a video game, the loading screen tip would read...",
+      answers: [
+        { text: "\u201cPlease wait.\u201d", type: "npc" },
+        { text: "\u201cNot all who wander are lost. Some are just observing.\u201d", type: "observer" },
+        { text: "\u201cEvery choice matters. Choose boldly.\u201d", type: "protagonist" },
+        { text: "\u201cYou were never the player. You were the final boss all along.\u201d", type: "boss" }
+      ]
+    }
+  ];
+
+  var results = {
+    npc: {
+      badge: "common",
+      title: "NPC",
+      tagline: "Always rendered. Rarely loaded.",
+      desc: "You keep the world running without asking for main-character lighting. Chaos happens around you, never to you \u2014 and that's not nothing. Routine is a survival skill most people are too busy main-charactering to learn.",
+      stats: { awareness: 15, influence: 10, chaos: 5, plotArmor: 20 }
+    },
+    observer: {
+      badge: "uncommon",
+      title: "THE OBSERVER",
+      tagline: "Sees everything. Says nothing. Forgets nothing.",
+      desc: "You clock the patterns everyone else is too busy to catch. Not center stage, but nothing in your orbit moves without you noticing first. The protagonist needs you more than they know.",
+      stats: { awareness: 85, influence: 30, chaos: 15, plotArmor: 45 }
+    },
+    protagonist: {
+      badge: "rare",
+      title: "MAIN CHARACTER",
+      tagline: "The plot bends toward you.",
+      desc: "Things happen because you're in the room. People remember the day they met you. You're not lucky \u2014 you're just built with plot armor most people don't get issued.",
+      stats: { awareness: 55, influence: 75, chaos: 35, plotArmor: 90 }
+    },
+    boss: {
+      badge: "legendary",
+      title: "FINAL BOSS",
+      tagline: "Unpredictable. Unbothered. Undefeated.",
+      desc: "You don't follow the story \u2014 you rewrite it mid-scene. Everyone else is reacting to something you already decided three moves ago. Final phase: unlocked.",
+      stats: { awareness: 70, influence: 90, chaos: 95, plotArmor: 65 }
+    }
+  };
+
+  var current = 0;
+  var locked = false;
+  var scores = { npc: 0, observer: 0, protagonist: 0, boss: 0 };
+
+  var card = document.getElementById("card");
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function wrapWords(text){
+    return text.split(" ").map(function(w, i){
+      return '<span class="word" style="animation-delay:' + (i * 35) + 'ms">' + escapeHtml(w) + "</span>";
+    }).join(" ");
+  }
+
+  function morphTo(renderFn){
+    if (reduceMotion){ renderFn(); return; }
+
+    function onOutEnd(e){
+      if (e.target !== card || e.animationName !== "morphOut") return;
+      card.removeEventListener("animationend", onOutEnd);
+      renderFn();
+      card.classList.remove("morph-out");
+      void card.offsetWidth; // force reflow so the next animation restarts cleanly
+      card.classList.add("morph-in");
+      card.addEventListener("animationend", onInEnd);
+    }
+    function onInEnd(e){
+      if (e.target !== card || e.animationName !== "morphIn") return;
+      card.removeEventListener("animationend", onInEnd);
+      card.classList.remove("morph-in");
+    }
+
+    card.classList.add("morph-out");
+    card.addEventListener("animationend", onOutEnd);
+  }
+
+  function statRow(label, value, color){
+    return (
+      '<div class="stat-row">' +
+        '<div class="stat-label">' + label + "</div>" +
+        '<div class="stat-track"><div class="stat-fill" data-value="' + value + '" style="background:' + color + ';"></div></div>' +
+        '<div class="stat-value">' + value + "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderIntro(){
+    card.innerHTML =
+      '<div class="screen intro">' +
+        '<div class="eyebrow">PERSONALITY DIAGNOSTIC</div>' +
+        '<h1 class="glitch" data-text="ARE YOU AN NPC?">ARE YOU AN NPC?</h1>' +
+        '<p class="sub">' + questions.length + ' prompts. one verdict. no respawns.</p>' +
+        '<button class="btn-primary" id="start-btn" type="button">&#9654; START</button>' +
+      "</div>";
+
+    document.getElementById("start-btn").addEventListener("click", function(){
+      current = 0;
+      scores = { npc: 0, observer: 0, protagonist: 0, boss: 0 };
+      morphTo(renderQuestion);
+    });
+  }
+
+  function renderQuestion(){
+    var q = questions[current];
+    var pct = Math.round((current / questions.length) * 100);
+
+    var answersHtml = "";
+    q.answers.forEach(function(a){
+      answersHtml += '<button class="answer-btn" data-type="' + a.type + '" type="button">' + escapeHtml(a.text) + "</button>";
+    });
+
+    card.innerHTML =
+      '<div class="screen question-screen">' +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="meta">TRIAL ' + (current + 1) + " / " + questions.length + ' <span class="cursor">_</span></div>' +
+        '<div class="question" aria-live="polite">' + wrapWords(q.text) + "</div>" +
+        '<div class="answers">' + answersHtml + "</div>" +
+      "</div>";
+
+    var buttons = card.querySelectorAll(".answer-btn");
+    buttons.forEach(function(btn){
+      btn.addEventListener("click", function(){
+        if (locked) return;
+        locked = true;
+        buttons.forEach(function(b){ b.disabled = true; });
+        btn.classList.add("selected");
+        scores[btn.getAttribute("data-type")]++;
+
+        setTimeout(function(){
+          current++;
+          locked = false;
+          if (current < questions.length){
+            morphTo(renderQuestion);
+          } else {
+            morphTo(renderResult);
+          }
+        }, 220);
+      });
+    });
+  }
+
+  function renderResult(){
+    var topKey = Object.keys(scores).reduce(function(a, b){
+      return scores[a] >= scores[b] ? a : b;
+    });
+    var r = results[topKey];
+
+    card.innerHTML =
+      '<div class="screen result-screen">' +
+        '<div class="badge ' + r.badge + '">' + r.badge + "</div>" +
+        '<h2 class="result-title">' + r.title + "</h2>" +
+        '<div class="tagline">' + r.tagline + "</div>" +
+        '<p class="desc">' + r.desc + "</p>" +
+        '<div class="stats">' +
+          statRow("Awareness", r.stats.awareness, "var(--signal)") +
+          statRow("Influence", r.stats.influence, "var(--influence)") +
+          statRow("Chaos", r.stats.chaos, "var(--glitch)") +
+          statRow("Plot Armor", r.stats.plotArmor, "var(--gold)") +
+        "</div>" +
+        '<button class="btn-primary" id="replay-btn" type="button">&#8635; REPLAY</button>' +
+      "</div>";
+
+    var fills = card.querySelectorAll(".stat-fill");
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        fills.forEach(function(f){
+          f.style.width = f.getAttribute("data-value") + "%";
+        });
+      });
+    });
+
+    document.getElementById("replay-btn").addEventListener("click", function(){
+      morphTo(renderIntro);
+    });
+  }
+
+  renderIntro();
+})();
+</script>
+</body>
+</html>
